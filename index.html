@@ -1,0 +1,230 @@
+<!-- =====================================================
+     Made with love by Yanoee
+     KF2 Server Landing Page
+===================================================== -->
+<!DOCTYPE html>
+<html lang="TR">
+
+<head>
+  <title>Killing Floor 2</title>
+
+  <!-- ================= FAVICONS ================= -->
+  <link rel="icon" href="/favico/favicon.ico" sizes="any">
+  <link rel="icon" type="image/png" sizes="16x16" href="/favico/favicon-16x16.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/favico/favicon-32x32.png">
+  <link rel="apple-touch-icon" href="/favico/apple-touch-icon.png">
+  <link rel="manifest" href="/favico/site.webmanifest">
+  <link rel="mask-icon" href="/favico/favicon.ico" color="#8b0000">
+
+  <!-- ================= STYLES ================= -->
+  <link rel="stylesheet" href="css/main.css">
+
+  <!-- ================= FONTS ================= -->
+  <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@600;700&family=Inter:wght@300;400&display=swap" rel="stylesheet">
+
+  <!-- ================= META ================= -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0a0a0a">
+  <meta name="application-name" content="KF2 Server">
+  <meta name="apple-mobile-web-app-title" content="KF2 Server">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+</head>
+
+<body>
+
+  <!-- =====================================================
+       LOADING SCREEN
+  ====================================================== -->
+  <div id="loading-screen">
+    <div class="loader-box">
+
+      <div class="spinner"></div>
+      <div class="done-tick">✓</div>
+
+      <div class="loading-text">
+        <span id="loading-message">Animasyon yükleniyor</span>
+        <div class="loading-count">
+          <span id="load-count">1</span>/30
+        </div>
+      </div>
+
+      <button id="continue-btn" disabled>
+        Siteye devam et
+      </button>
+
+    </div>
+  </div>
+
+  <!-- ================= AUDIO ================= -->
+  <audio id="bg-music" preload="auto"></audio>
+  <audio id="click-sound" src="/audio/click.mp3" preload="auto"></audio>
+
+  <!-- =====================================================
+       BACKGROUND LAYERS
+  ====================================================== -->
+  <div id="bg-image"></div>
+  <canvas id="hex-canvas"></canvas>
+
+  <!-- =====================================================
+       MAIN UI OVERLAY
+  ====================================================== -->
+  <div class="overlay">
+
+    <!-- ================= BANNER ================= -->
+    <section class="banner glass">
+      <img src="find a banner/make" alt="Server Banner">
+    </section>
+
+    <!-- ================= MAIN CARD ================= -->
+    <section class="landing-card glass">
+
+      <!-- ===== HERO ===== -->
+      <div class="hero">
+        <h1>[TR] Killing Floor 2 - 10x HoE</h1>
+        Sunucu: <span id="server-status"></span>
+        <br><br>
+        <div class="buttons">
+          <a class="glass-btn join" href="steam://connect/serverip:port" target="_blank">
+            SUNUCUYA KATIL
+          </a>
+
+          <a class="glass-btn password" id="show-password">
+            PAROLA 
+          </a>
+
+          <a class="glass-btn admin" href="serverip:port" target="_blank">
+            ADMIN PANEL 
+          </a>
+        </div>
+      </div>
+
+      <!-- ================= GAME PANEL ================= -->
+      <div class="game-panel glass">
+
+        <!-- ===== CURRENT GAME ===== -->
+        <div class="panel-col">
+          <h3>GUNCEL OYUN</h3>
+
+          <div>
+            <span>KAPASITE:</span>
+            <strong id="r-players">--</strong>
+          </div>
+
+          <div>
+            <span>OYUN MODU:</span>
+            <strong id="cg-type">--</strong>
+          </div>
+
+          <div>
+            <span>HARITA:</span>
+            <strong id="cg-map">--</strong>
+          </div>
+
+          <div>
+            <span>ANTI-CHEAT:</span>
+            <img src="img/vac.png" style="height:1.3em; width:auto; vertical-align:left;">
+          </div>
+        </div>
+
+        <!-- ===== SETTINGS ===== -->
+        <div class="panel-col">
+          <h3>AYARLAR</h3>
+
+          <div>
+            <span>Min OYUNCU:</span>
+            <strong id="r-min">--</strong>
+          </div>
+
+          <div>
+            <span>SPECTATOR:</span>
+            <strong id="r-spec">--</strong>
+          </div>
+
+          <div>
+            <span>VOTE MAP:</span>
+            <strong id="r-mapvote">--</strong>
+          </div>
+
+          <div>
+            <span>VOTE KICK:</span>
+            <strong id="r-kickvote">--</strong>
+          </div>
+        </div>
+
+        <!-- ===== PLAYER LIST ===== -->
+        <div class="panel-col wide">
+          <h3>OYUNCULAR</h3>
+
+          <table class="players-table">
+            <thead>
+              <tr>
+                <th>ISIM</th>
+                <th>SCORE</th>
+                <th>VAKIT</th>
+              </tr>
+            </thead>
+            <tbody id="players-body">
+              <tr>
+                <td colspan="3" class="empty">Oyuncu yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <!-- ===== FOOTER ===== -->
+        <div class="info">
+          <a class="credit" href="https://steamcommunity.com/id/triacetontriperoxide/" target="_blank">
+            Yanoee © 2026
+          </a>
+        </div>
+
+      </div>
+    </section>
+  </div>
+
+  <!-- =====================================================
+       PASSWORD POPUP
+  ====================================================== -->
+  <div id="password-popup">
+    <div class="popup-box glass">
+
+      <button class="popup-close" id="close-password">✕</button>
+
+      <h3>SUNUCU PAROLASI</h3>
+
+      <div class="popup-row">
+        <span>Parola</span>
+        <code id="server-password">!a1jo2ni3</code>
+        <button class="copy-btn" data-copy="!a1jo2ni3">Kopyala</button>
+      </div>
+
+      <div class="popup-row">
+        <span>Bağlan Komutu</span>
+        <code id="connect-cmd">
+          open serverip:port?password=!a1jo2ni3
+        </code>
+        <button
+          class="copy-btn"
+          data-copy="open serverip:port?password=!a1jo2ni3">
+          Kopyala
+        </button>
+      </div>
+
+      <p class="popup-info">
+        Steam oyun içi konsolu aç (<b>~</b>) ve yukarıdaki komutu yapıştır.
+      </p>
+
+    </div>
+  </div>
+
+  <!-- ================= SCRIPTS ================= -->
+  <script src="js/bg.js"></script>
+  <script src="js/hexgrid.js"></script>
+  <script src="js/status.js"></script>
+  <script src="js/loading.js"></script>
+  <script src="js/alerts.js"></script>
+
+</body>
+</html>
