@@ -1,134 +1,95 @@
-# KF2 Server Landing Page
+# kf2-server-status-page
 
-A fully animated, real-time landing page for a **Killing Floor 2** server.
+A status page for a Killing Floor 2 server. It shows whether the server is up, what map is running, who's on it and for how long. It also has a join button and a password popup so people stop asking for the password in Discord.
 
-This project provides a lightweight, visually rich status page that displays live server information without using frameworks, Node.js, or build tools.
+Plain HTML, CSS, JS and one PHP file. No framework, no Node, no build step. Copy it to a web root and it runs.
 
----
+The UI text is in Turkish. If you want another language, edit the strings in `index.html`, `js/status.js`, `js/loading.js` and `js/alerts.js`.
 
-## ✨ Overview
+![Server online](docs/img/online.png)
 
-The landing page displays live data pulled directly from a KF2 server, including:
+## What it does
 
-- Server online/offline status  
-- Current map and game mode  
-- Real-time player list  
-- One-click Steam connect  
-- Password popup with copy-to-clipboard buttons  
+- Queries the game server every 5 seconds and updates the page without a reload
+- Shows the map, game mode, player count and a player table with score and time played
+- Join button that hands off to Steam (`steam://connect/...`)
+- Password popup with copy buttons for both the password and the full console `open` command
+- Random background image with a slight mouse parallax, plus an animated hex grid on top
+- One-time loading screen, which also serves as the click browsers require before they'll play background music
 
-Built using **vanilla HTML, CSS, JavaScript**, and **PHP with SourceQuery**.
+| Offline | Password popup | Loader |
+|---|---|---|
+| ![Offline](docs/img/offline.png) | ![Password popup](docs/img/password.png) | ![Loader](docs/img/loader.png) |
 
-**No frameworks.  
-No Node.js.  
-No build step.**
+## How it works
 
----
+![Request flow](docs/img/flow.png)
 
-## 🔥 Features
+The browser never touches the game server. `js/status.js` calls `api/status.php`, which uses [xPaw's PHP-Source-Query](https://github.com/xPaw/PHP-Source-Query) to send a standard Steam A2S query over UDP to the server's query port. KF2 answers A2S out of the box, so nothing needs to be installed on the game server.
 
-- 🎮 Live Killing Floor 2 server status  
-- 👥 Player list (name, kills, playtime)  
-- 🗺️ Current map & game mode display  
-- 🔐 Password popup with copy buttons  
-- 🔊 Optional background music (user-initiated)  
-- 🧊 Glassmorphism UI  
-- 🎨 Animated hex-grid canvas background  
-- 🖱️ Mouse-based parallax background  
-- 🧲 Draggable modal window  
-- 📱 Fully responsive layout  
-- ⚡ Zero JavaScript dependencies  
+If the query times out (1 second), throws, or the fetch fails, the page shows the server as offline. It doesn't tell those three cases apart.
 
----
+The "AYARLAR" panel (min players, spectators, vote map, vote kick) is **not live**. A2S doesn't return those values, so they're hardcoded in `showOnline()` in `js/status.js`. Change them to whatever your server actually uses.
 
-## ⚠️ Requirements
+![Page layers](docs/img/layers.png)
 
-This project **will not work** without the following:
+Each script owns one layer:
 
-### 1️⃣ Web Server
-- NGINX or Apache  
-- PHP 8.x recommended  
+| File | Job |
+|---|---|
+| `js/bg.js` | Picks a random `img/bg_*.webp`, darkens and blurs it, moves it a few pixels with the mouse |
+| `js/hexgrid.js` | Full-screen canvas hex grid. Random grey to red fades, lights up near the cursor |
+| `js/status.js` | Polls the API, fills in the panel and player table, sets the status badge |
+| `js/alerts.js` | Password popup: open/close, Esc, outside click, drag, copy buttons |
+| `js/loading.js` | Fake loading counter, once per tab session. The click on "continue" starts a random track from `audio/` |
+| `api/status.php` | The only server-side code. Queries the game server, returns JSON |
 
-### 2️⃣ SourceQuery (Required)
+## Requirements
 
-This project uses **xPaw’s PHP SourceQuery** to query the Killing Floor 2 server.
+- A web server that can run PHP 8 (nginx + PHP-FPM or Apache + mod_php)
+- Composer, to install SourceQuery
+- Outbound UDP from the web server to the game server's query port
 
-GitHub repository:  
-https://github.com/xPaw/PHP-Source-Query
+## Install
 
----
-
-## 📦 Installing SourceQuery
-
-### Step 1 — Download SourceQuery
+Put the files in your web root:
 
 ```bash
-cd /var/www/your-site/api
-git clone https://github.com/xPaw/PHP-Source-Query.git SourceQuery
+git clone https://github.com/Yanoee/kf2-server-status-page.git /var/www/kf2
 ```
 
-Resulting file:
-```
-api/SourceQuery/SourceQuery.class.php
-```
+Install SourceQuery where `status.php` expects it (`api/sourcequery/vendor/autoload.php`):
 
-### Step 2 — Include SourceQuery in `status.php`
-
-```php
-require __DIR__ . '/SourceQuery/SourceQuery.class.php';
+```bash
+cd /var/www/kf2/api
+mkdir sourcequery && cd sourcequery
+composer require xpaw/php-source-query-class
 ```
 
----
-
-## 🔌 API Endpoint
-
-**Endpoint:**
-```
-/api/status.php
-```
-
-The frontend (`js/status.js`) polls this endpoint every **5 seconds**.
-
-### Expected JSON Output
-
-```json
-{
-  "online": true,
-  "name": "[TR] KF2 Server",
-  "mode": "Survival",
-  "map": "KF-BioticsLab",
-  "players": 5,
-  "max": 10,
-  "playerlist": [
-    { "Name": "Player1", "Kills": 120, "Time": "12:34" }
-  ]
-}
-```
-
-If the query fails or times out, the frontend automatically switches to **offline mode**.
-
----
-
-## 🌐 NGINX Install Guide (Recommended)
-
-### Install NGINX + PHP
+On Debian/Ubuntu, nginx and PHP:
 
 ```bash
 apt update
-apt install nginx php php-fpm php-curl php-sockets php-json -y
+apt install nginx php-fpm composer -y
 ```
 
-### Example NGINX Server Block
+Example server block. Check the PHP-FPM socket name against your installed version:
 
 ```nginx
 server {
     listen 80;
-    server_name yourdomain.com;
+    server_name status.example.com;
 
-    root /var/www/your-site;
-    index index.html index.php;
+    root /var/www/kf2;
+    index index.html;
 
     location / {
         try_files $uri $uri/ =404;
+    }
+
+    # vendor code has no business being reachable from the web
+    location ^~ /api/sourcequery/ {
+        deny all;
     }
 
     location ~ \.php$ {
@@ -142,71 +103,90 @@ server {
 }
 ```
 
-### Reload NGINX
-
 ```bash
 nginx -t && systemctl reload nginx
 ```
 
----
+Put TLS in front of it. Certbot takes two minutes.
 
-## 🚀 How to Run
+## Configure
 
-1. Upload all project files to your web root  
-2. Install SourceQuery  
-3. Configure `api/status.php`:
-   - Server IP  
-   - Query port  
-4. Update the Steam connect link in `index.html`  
-5. Open the site in your browser  
+Nothing works until you replace the placeholders. All of them are plain text, so search for them.
 
----
+| Where | What to change |
+|---|---|
+| `api/status.php` | `$SERVER_IP` and `$SERVER_PORT` (the query port, default `27015`) |
+| `index.html` | `steam://connect/serverip:port` on the join button (game port, default `7777`) |
+| `index.html` | Admin panel link (`serverip:port`, WebAdmin default `8080`). Better yet, remove it. See below |
+| `index.html` | The password, in three places inside `#password-popup` |
+| `index.html` | `<img src="find a banner/make">` in the banner section. Add your own image or delete the section |
+| `index.html` | Server title in the hero `<h1>` |
+| `js/status.js` | Hardcoded rule values in `showOnline()` |
+| `js/status.js` | `REFRESH_MS` if 5 seconds is too often or not often enough |
 
-## 🛠 Configuration Notes
+Backgrounds: drop `.webp` files in `img/` and update the `IMAGES` array in `js/bg.js`. They don't get picked up automatically.
 
-### Change Server IP
-- `index.html` → Steam connect URL  
-- `api/status.php` → SourceQuery host & port  
+Music: `audio/track1-3.mp3`, list in `js/loading.js`. Delete the tracks and the `tracks` array if you don't want music.
 
-### Change Refresh Rate
+## API
 
-`js/status.js`
-```js
-const REFRESH_MS = 5000;
+`GET /api/status.php`
+
+Online:
+
+```json
+{
+  "online": true,
+  "name": "My KF2 Server",
+  "map": "KF-BioticsLab",
+  "mode": "Survival",
+  "players": 4,
+  "max": 10,
+  "playerlist": [
+    { "Name": "someone", "Dosh": 18420, "Time": "01:12 DK" }
+  ]
+}
 ```
 
-### Background Images
-- Place `.webp` images inside `/img/`  
-- Images are auto-randomized on page load  
+Offline:
 
----
+```json
+{ "online": false, "error": "..." }
+```
 
-## ❗ Common Problems
+It always returns HTTP 200. Check `online`, not the status code.
 
-### ❌ Server Always Offline
-- UDP port blocked  
-- Wrong query port  
-- PHP sockets disabled  
-- Firewall blocking outbound UDP  
+## Before you expose this
 
-### ❌ Players Not Showing
-- Server is empty (normal behavior)  
-- SourceQuery timeout too low  
-- KF2 server not responding to queries  
+The page is public, and everything in it is public too.
 
----
+- **The password is in the HTML.** Anyone can read it with view-source, so the popup only stops people who weren't going to look anyway. If the password actually matters, don't put it on a public page.
+- **Don't link WebAdmin.** The admin button sends every visitor to your admin login. Remove it, or at minimum firewall port 8080 to your own IP.
+- **`status.php` returns the raw exception message.** That can include your server's IP and port. Replace `$e->getMessage()` with a generic string if you care.
+- **Player names are inserted with `innerHTML`.** Players choose their own names, so someone can name themselves with HTML and it runs on your page. Escape them or switch to `textContent` before you run this anywhere that matters.
+- **Your server IP ends up in the page source** either way, through the connect link. That's how joining works. Just know it's there.
 
-## 👤 Author
+## Known issues
 
-**Yanoee**  
-© 2026  
+- **Score column always shows `--`.** The PHP sends `Dosh` and the JS reads `Kills`. Make them use the same key.
+- Offline, error and timeout all look the same.
+- The loading screen counts to 30 on a timer. It isn't measuring anything.
+- Mobile has a breakpoint at 900px but hasn't been tested properly.
 
-Steam:  
-https://steamcommunity.com/id/triacetontriperoxide/
+## Troubleshooting
 
----
+**Always offline**
 
-## 📜 License
+- Wrong query port. It's the Steam query port (`27015` by default), not the game port.
+- UDP blocked somewhere between the web server and the game server. Test from the web server itself.
+- SourceQuery not installed where the `require` expects it. Open `/api/status.php` directly and read the error.
+- Server is running but hasn't finished loading a map yet.
 
-Free to use, modify, and self-host.  
-No warranty. No support obligation.
+**Online but no players**
+
+- Nobody's playing.
+- Players still on the loading screen don't always show up in A2S yet.
+
+## License
+
+MIT. See [LICENSE](LICENSE).
